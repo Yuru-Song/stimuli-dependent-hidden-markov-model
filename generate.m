@@ -1,51 +1,54 @@
-% SH_hmmgenerate generate a sequence for a StimHistHMM
-% ---------------------------------------------------
-% 	INPUTS:
-% 		L: integer, length of sequence to generate
-% 		K1: [numStates, numStates, numStim] array, linear filter of stimulus-dependent state transition 
-% 		H1: [numStates, numStates, numTau] array, linear filter of history-dependent state transition
-% 		K2: [numStates, numEmiss, numStim] array, linear filter of stimulus-dependent emission
-% 		H2: [numStates, numEmiss, numTau] array, linear filter of history-dependent emission
-% 		stim: [numStim, L] array, stimuli over time
-% 	OUTPUTS:
-% 		seq: [1, L] array
-% 		states: [1, L] array
-% ---------------------------------------------------
-% reference: Hidden Markov models for the stimulus-response relationships of multi-state neural systems, Escola et al, 
-% Neural Computation, 2010
-%	See also  forwardbackward, trainHH, emisshessian.
-% ---------------------------------------------------
-% @Yuru Song, Aug-31-2019, UCSD
-function [Y, states, alpha, eta] = generate(Nt, K1, H1, K2, H2, S)
-Nstate = size(K1,1);
-Nstim = size(K1,3);
-Ntau = size(H1,3);
-Nout = size(K2, 2);
-states = zeros(1,Nt);
-Y = zeros(1,Nt + Ntau);
+function [Y, emiss_filter, trans_filter, features] = generate(num_feat, num_state, num_out, num_time, options)
+% INPUT:
+%   num_feat: number of feature in stimuli
+%   num_state: number of hidden state
+%   num_out: number of output choices
+%   num_time: time length
+%   G: optional, [num_state, num_out, num_feat + 1], emission filter, default: random 
+%   F: optional, [num_state, num_state, num_feat + 1], transition filter, default: random
+%   S: optional, [num_feat, num_time], stimuli, default: ones
+% OUTPUT:
+%   Y: [1, num_time], output over time
+%   emiss_filter: [num_state, num_out, num_feat], just in case it's not
+%   provided by user
+%   trans_filter: [num_state, num_state, num_feat], also just in case it's
+%   not provided by user
+%   features: [num_feat, num_time], again, in case not provided by user
+
+% SETUP
+rng(1);
+if ~isfield(options, 'S')
+    options.S = rand(num_feat, num_time); %testing
+end
+num_feat = num_feat + 1;
+if ~exist('options','var')
+    options.filler = 0;
+end
+if ~isfield(options, 'G')
+    options.G = rand(num_state, num_out, num_feat);
+end
+if ~isfield(options, 'F')
+    options.F = rand(num_state, num_state, num_feat);
+end
+% for i = 1: num_feat
+%     options.F(:,:,i) = options.F(:,:,i) - diag(diag(squeeze(options.F(:,:,i))));
+% end
+alpha = compute_trans(options.S, options.F);
+eta = compute_emiss(options.S, options.G);
+states = zeros(1,num_time);
+Y = zeros(1, num_time);
 % create two random sequences, one for state changes, one for emission
-statechange = rand(1,Nt);
-randvals = rand(1,Nt);
+statechange = rand(1,num_time);
+randvals = rand(1, num_time);
 % Assume that we start in state 1.
 currentstate = 1;
-alpha = zeros(Nstate,Nstate,Nt);
-eta = zeros(Nstate,Nout,Nt);
-for t = 1: Nt
-    % stimuli and history dependent
-    % time-heterogeneous transition matrix
-    alpha(:,:,t) = exp(sum(K1.*repmat(reshape(S(:,t),[1,1,Nstim]),[Nstate,Nstate,1]),3) ...
-            + sum(H1.*repmat(reshape(Y(:,t:t+Ntau-1),[1,1,Ntau]),[Nstate,Nstate,1]),3));
-    alpha(:,:,t) = alpha(:,:,t)./sum(alpha(:,:,t),2);
+for t = 1: num_time
     alphac = cumsum(alpha(:,:,t),2);
-    % time-heterogeneous emission matrix
-    eta(:,:,t) = exp(sum(K2.*repmat(reshape(S(:,t),[1,1,Nstim]),[Nstate,Nout,1]),3) ...
-            + sum(H2.*repmat(reshape(Y(:,t:t+Ntau-1),[1,1,Ntau]),[Nstate,Nout,1]),3));
-    eta(:,:,t) = eta(:,:,t)./sum(eta(:,:,t),2);
     etac = cumsum(eta(:,:,t),2);
-	% calculate state transition
+    % calculate state transition
     stateVal = statechange(t);
     state = 1;
-    for innerState = Nstate-1:-1:1
+    for innerState = num_state-1:-1:1
         if stateVal > alphac(currentstate,innerState)
             state = innerState + 1;
             break;
@@ -54,21 +57,20 @@ for t = 1: Nt
     % calculate emission
     val = randvals(t);
     emit = 1;
-    for inner = Nout-1:-1:1
+    for inner = num_out-1:-1:1
         if val  > etac(state,inner)
             emit = inner + 1;
             break
         end
     end
     % add values and states to output
-    Y(t + Ntau) = emit;
+    Y(t) = emit;
     states(t) = state;
     currentstate = state;
 end
-Y = Y(Ntau + 1:end);
 
-
-
-
-
-
+if nargout > 1
+    emiss_filter = options.G;
+    trans_filter = options.F;
+    features = options.S;
+end
