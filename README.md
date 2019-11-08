@@ -1,4 +1,4 @@
-# stimuli-history-dependent-hidden-markov-model
+# stimuli dependent hidden Markov model
 These codes implement a modified hidden Markov model.
 This model can incorporate time-varying external input into the transition/emission matrix through genelized linear model.  
 
