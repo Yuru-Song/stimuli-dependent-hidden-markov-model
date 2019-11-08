@@ -9,9 +9,9 @@ reference:
 Hidden Markov models for the stimulus-repoonse relationships of multi-state neural systems. 
   Neural Computation. 2014, Escola et al.
   
-![](README.pj2)
-![](README_2.pj2)
-![](README_3.pj2)
-![](README_4.pj2)
-![](README_5.pj2)
-![](README_6.pj2)
+![](README.jp2)
+![](README_2.jp2)
+![](README_3.jp2)
+![](README_4.jp2)
+![](README_5.jp2)
+![](README_6.jp2)
