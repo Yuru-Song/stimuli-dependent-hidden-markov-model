@@ -6,7 +6,7 @@ minFunc MATLAB package is required
 
 reference: 
 Hidden Markov models for the stimulus-repoonse relationships of multi-state neural systems. 
-  Neural Computation. 2014, Escola et al.
+  Neural Computation. 2014, Escola et al.\\
 Unsupervised identification of the internal states that shape natural behavior. bioRxiv https://doi.org/10.1101/691196 2019, Calhoun et al. 
   
 ![](README.jp2)
